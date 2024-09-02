@@ -21,3 +21,43 @@ tags:
 
 ## demo
 
+[dubbo+nacos demo工程](https://github.com/toanwang/SpringComponent/tree/master/dubbo-demo)
+
+* 需要本地先部署`nacos`
+
+## dubbo
+
+写`demo`主需要三个注解
+
+* `api`模块
+  * 定义`consumer`和`provider`需要使用的接口
+
+* `consumer`模块
+  * `@DubboReference(version = "1.0.0", timeout = 1000, retries = 1)`：声明`api`中的接口需要用`dubbo`调用，指定版本号，超时时间和重试次数
+* `provider`模块
+  * `EnableDubbo`：`dubbo`的自动配置和服务扫描
+  * `@DubboService(version = "1.0.0")`：声明集成`api`中的类，指定接口版本号
+
+### application
+
+```yaml
+server:
+  port: 8080
+dubbo:
+  application:
+    name: dubbo-provider #服务名称
+    version: 1.0.0 # 服务版本号
+  registry:
+    address: nacos://localhost:8848?namespace=30e4480b-f903-4d26-8084-cedff611a340&username=nacos&password=nacos
+  protocol:
+    name: dubbo
+```
+
+* `consumer`和`provider`的配置类似，自己测试过程中发现写这些就可以把`demo`跑起来
+  * 这里面的`version`是服务版本号，代码里面调用的是接口版本号，两者不一样
+
+## nacos
+
+`nacos`本地启动之后，可以再`localhost:8848/nacos`查看服务注册情况
+
+* 服务列表展示的是注册的服务和接口，消费者不在里面
