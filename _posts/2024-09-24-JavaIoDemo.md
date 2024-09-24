@@ -1,0 +1,103 @@
+---
+layout:     post
+title:      Spring学习-IOC
+subtitle:   SpringBoot
+date:       2024-09-19
+author:     toan
+catalog:	true
+tags:
+    - SpringBoot
+    - IOC
+    - AOP
+---
+
+
+
+# 参考资料
+
+[廖雪峰-实现IOC容器](https://liaoxuefeng.com/books/summerframework/ioc/index.html)
+
+写了一周代码，各种注解依赖，知其然不知其所以然，感觉对于Spring的基础还是需要回顾
+
+参考廖雪峰的实现，他用的是Java21，公司包括自己用的还是Java8
+
+代码：https://github.com/toanwang/SpringComponent/tree/master/spring-demo
+
+# IOC
+
+<img src="https://cdn.nlark.com/yuque/0/2024/png/1102741/1726712128583-d4a89506-435d-44be-9e1c-8111a6772165.png?x-oss-process=image%2Fformat%2Cwebp" alt="image.png" style="zoom:50%;" referrerpolicy="no-referrer"/>
+
+## 大概流程
+
+1. 初始化需要传入启动文件的class对象，查看是否使用了注解指定扫描路径，如果没有指定，使用类加载器获取当前文件所在的路径，扫描此路径下的class文件；如果指定，扫描指定路径下的class文件
+2. 获取bean定义：根据第一步加载出来的对象，获取bean的基础定义
+3. bean实例化：进行依赖注入，此处会有循环依赖的问题
+4. PostProcessors：自定义过程，在实例化和初始化之前可以有额外的操作
+5. bean初始化：一些属性设置，以及有PostConstruct注解方法
+
+## 单模块
+
+### resource-resolver
+
+资源解析器:根据指定的路径寻找可用的class `@ComponentScan`
+
+目的：在编写`IoC`容器之前，我们首先要实现`@ComponentScan`，即解决“在指定包下扫描所有`Class`”的问题
+
+1. Java的ClassLoader机制可以在指定的Classpath中根据类名加载指定的Class，但给出一个包名，例如，org.example，它并不能获取到该包下的所有Class，也不能获取子包
+2. 要在Classpath中扫描指定包名下的所有Class，包括子包，实际上是在Classpath中搜索所有文件，找出文件名匹配的.class文件，例如，Classpath中搜索的文件org/example/Hello.class就符合包名org.example，我们需要根据文件路径把它变为org.example.Hello，就相当于获得了类名
+3. 因此，搜索Class变成了搜索文件
+
+### property-resolver
+
+属性解析器:获取配置文件中的信息
+
+### BeanDefinition
+
+保存Bean的定义信息，不直接进行实例化的原因
+
+* 可以支持延迟加载
+* 方便管理和定义Bean的配置，比如单例、初始化/销毁方法
+* 支持多种创建方式和生命周期管理：构造函数、工厂方法等
+* 动态代理和AOP：可以在类实例化之前准备好代理对象，不需要修改原始的Bean类
+* 灵活配置数据来源：XML、Java注解、Java配置类
+
+### BeanInstance
+
+根据bean定义进行实例化操作
+用到的注解
+
+`@Component`：核心注解，标识是一个需要被管理的Bean
+\* `@Configuration：标记为配置类，其中用@Bean标记的属性，会被IOC管理
+Bean实例化(注入)主要是两种方法，Spring框架推荐 构造函数注入
+\* 构造函数：优点：依赖项不可变；强制依赖注入；清晰的依赖关系。但是无法处理循环依赖
+\* setter：如果没有显式的构造函数，使用无参构造函数实例化该类，使用setter方法注入依赖
+
+### initBean
+
+1. 对字段进行依赖注入
+2. init初始化bean
+
+# AOP
+
+SpringBoot默认使用CGLIB(ByteBuddy)进行动态代理
+
+1. JDK动态代理，只能对接口进行代理
+2. CGLIB等，通过动态生成字节码，实现对类的代理
+
+## CGLIB(ByteBuddy)基本流程
+
+1. 获取原始对象的class,targetClass
+2. 使用默认(指定)的构造策略,构造一个继承targetClass的子类，subClass
+3. 选择需要代理的方法(Public还是其他的)
+4. 设置拦截器，实现InvocationHandler的类
+   * 拦截器的invoke实现，对象+方法+参数，外层invoke传入的是proxy实例
+   * 内层invoke将调用转发到原始Bean
+
+5. 创建代理类
+6. 设置类加载器，使用和目标类相同的类加载器
+7. 将动态类加载到JVM中，并获取Class对象
+
+## JDK和CGLIB的区别
+
+1. JDK只能处理实现了接口的类；每次运行都依赖反射
+2. CGLIB可以代理没有接口的类；生成代理类是重写了目标类，后续运行不依赖反射
