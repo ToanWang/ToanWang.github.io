@@ -56,6 +56,14 @@ dubbo:
 * `consumer`和`provider`的配置类似，自己测试过程中发现写这些就可以把`demo`跑起来
   * 这里面的`version`是服务版本号，代码里面调用的是接口版本号，两者不一样
 
+### interview
+
+[dubbo面试](https://javabetter.cn/interview/dubbo-17.html#_3-%E8%83%BD%E8%AF%B4%E4%B8%8B-dubbo-%E7%9A%84%E6%80%BB%E4%BD%93%E7%9A%84%E8%B0%83%E7%94%A8%E8%BF%87%E7%A8%8B%E5%90%97)
+
+1. 服务调用过程
+2. 支持的协议
+3. 用到的设计模式：责任链；观察者；装饰器；工厂模式；代理模式；适配器模式
+
 ## nacos
 
 `nacos`本地启动之后，可以再`localhost:8848/nacos`查看服务注册情况
